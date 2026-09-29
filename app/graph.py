@@ -64,7 +64,8 @@ def _context_text(chunks: list[RetrievedChunk]) -> str:
 def _parse_grade(raw: str) -> tuple[bool, float]:
     raw = raw.strip()
 
-    # Remove Markdown code fences if Ollama returns JSON inside ```json ... ```
+    # Remove Markdown code fences if Ollama returns JSON
+    # inside ```json ... ```
     raw = re.sub(
         r"```json\s*",
         "",
@@ -103,7 +104,8 @@ def _parse_grade(raw: str) -> tuple[bool, float]:
     ):
         pass
 
-    # If there is extra text around the JSON, extract the JSON object.
+    # If there is extra text around the JSON,
+    # extract the JSON object.
     match = re.search(
         r"\{.*\}",
         raw,
@@ -147,7 +149,10 @@ def build_graph(
     ollama_base_url: str = "http://localhost:11434",
     llm=None,
 ):
-    # Use local Ollama instead of OpenAI.
+    # ---------------------------------------------------------
+    # LOCAL OLLAMA LLM
+    # ---------------------------------------------------------
+
     llm = llm or ChatOllama(
         model=chat_model,
         temperature=0,
@@ -159,8 +164,105 @@ def build_graph(
     # ---------------------------------------------------------
 
     def retrieve(state: RAGState):
+        query = state["query"]
+        query_lower = query.lower()
+
+        # Original user query
+        retrieval_query = query
+
+        # -----------------------------------------------------
+        # QUERY EXPANSION FOR CHALLENGES / LIMITATIONS
+        # -----------------------------------------------------
+
+        if (
+            "challenge" in query_lower
+            or "limitation" in query_lower
+        ):
+            retrieval_query += (
+                " multi-agent systems "
+                "complex system design interoperability "
+                "data security conflict resolution scalability "
+                "cost of implementation slow development "
+                "communication coordination conflict management "
+                "choosing the right agent reliability fault tolerance "
+                "orchestrating complex agentic systems"
+            )
+
+        # -----------------------------------------------------
+        # QUERY EXPANSION FOR USE CASES / APPLICATIONS
+        # -----------------------------------------------------
+
+        elif (
+            "use case" in query_lower
+            or "use cases" in query_lower
+            or "applications" in query_lower
+            or "real-world" in query_lower
+        ):
+            retrieval_query += (
+                " practical applications "
+                "industry vertical agents "
+                "healthcare finance retail education "
+                "manufacturing legal transportation "
+                "biopharma construction "
+                "drug discovery clinical trials"
+            )
+
+        # -----------------------------------------------------
+        # QUERY EXPANSION FOR INDUSTRY VERTICALS
+        # -----------------------------------------------------
+
+        elif (
+            "industry" in query_lower
+            or "industries" in query_lower
+            or "vertical" in query_lower
+        ):
+            retrieval_query += (
+                " industry vertical agents "
+                "healthcare finance retail education "
+                "manufacturing legal transportation "
+                "biopharma medical devices construction"
+            )
+
+        # -----------------------------------------------------
+        # QUERY EXPANSION FOR MULTI-AGENT SYSTEMS
+        # -----------------------------------------------------
+
+        elif (
+            "multi-agent" in query_lower
+            or "multi agent" in query_lower
+        ):
+            retrieval_query += (
+                " benefits challenges mitigation strategies "
+                "communication coordination "
+                "task allocation "
+                "orchestration "
+                "conflict resolution "
+                "scalability "
+                "reliability"
+            )
+
+        # -----------------------------------------------------
+        # QUERY EXPANSION FOR AGENTIC AI DEFINITION
+        # -----------------------------------------------------
+
+        elif (
+            "what is agentic ai" in query_lower
+            or "define agentic ai" in query_lower
+            or "definition of agentic ai" in query_lower
+        ):
+            retrieval_query += (
+                " autonomous decision making "
+                "autonomous action "
+                "specific objectives "
+                "perception reasoning planning learning execution"
+            )
+
+        # -----------------------------------------------------
+        # SEARCH PINECONE
+        # -----------------------------------------------------
+
         chunks = store.query(
-            state["query"],
+            retrieval_query,
             top_k=top_k,
             min_score=min_retrieval_score,
         )
@@ -386,6 +488,7 @@ class RAGService:
         self,
         query: str,
     ) -> QueryResponse:
+
         state = self.graph.invoke(
             {
                 "query": query.strip(),
